@@ -47,11 +47,11 @@ namespace KF2_banlist_editor
             int count = 0;
             int max = banBox.Items.Count * serverList.Items.Count;
 
-            Thread work = new Thread(()=>{
+            Thread work = new Thread(() => {
                 for (int i = 0; i < serverList.Items.Count; i++)
                 {
                     string url = serverList.Items[i].ToString();
-                    
+
                     serverLabel.Text = url;
                     string token = "";
                     CookieContainer cookies = new CookieContainer();
@@ -63,6 +63,12 @@ namespace KF2_banlist_editor
                     req.KeepAlive = true;
 
                     HttpWebResponse result = (HttpWebResponse)req.GetResponse();
+                    var head = result.Headers;
+
+                    foreach (Cookie cook in result.Cookies)
+                    {
+                        cookies.Add(cook);
+                    }
 
                     if (result.StatusCode != HttpStatusCode.OK)
                     {
@@ -85,8 +91,8 @@ namespace KF2_banlist_editor
                     }
 
                     //sending login post
-                    String postData = String.Format("token={0}&username={1}&password={2}&remember=1800", token, id, password);
-                    cookies = PostSend(postData, url + "/ServerAdmin/", req.CookieContainer);
+                    String postData = String.Format("token={0}&username={1}&password={2}&remember=-1", token, id, password);
+                    cookies = PostSend(postData, url + "/ServerAdmin/", cookies);
 
                     foreach (string user in banBox.Items)
                     {
@@ -95,7 +101,7 @@ namespace KF2_banlist_editor
                         //sending ban post
                         userLable.Text = user;
                         postData = String.Format("action=add&steamint64={0}uniqueid=", user);
-                        cookies = PostSend(postData, url + "/ServerAdmin/policy/bans", req.CookieContainer);
+                        cookies = PostSend(postData, url + "/ServerAdmin/policy/bans", cookies);
                     }
                 }
                 MessageBox.Show("Complete Ban");
@@ -103,14 +109,13 @@ namespace KF2_banlist_editor
             work.Start();
         }
         private CookieContainer PostSend(string postData, string url, CookieContainer cookies)
-        {   
+        {
             HttpWebRequest req = (HttpWebRequest)WebRequest.Create(url);
             req.CookieContainer = cookies;
             req.Method = WebRequestMethods.Http.Post;
             req.KeepAlive = true;
 
-            req.AllowAutoRedirect = true;
-            req.ContentType = "application/x-www-form-urlencoded; charset=UTF-8";
+            req.ContentType = "application/x-www-form-urlencoded";
 
             byte[] sendData = UTF8Encoding.UTF8.GetBytes(postData);
             req.ContentLength = sendData.Length;
@@ -120,8 +125,8 @@ namespace KF2_banlist_editor
             requestStream.Close();
 
             HttpWebResponse result = (HttpWebResponse)req.GetResponse();
-            
-            if(result.StatusCode == HttpStatusCode.OK)
+
+            if (result.StatusCode == HttpStatusCode.OK)
             {
                 using (Stream dataStream = result.GetResponseStream())
                 {
@@ -133,7 +138,7 @@ namespace KF2_banlist_editor
                 }
             }
 
-            return req.CookieContainer;
+            return cookies;
         }
         private void serverBtn_Click(object sender, EventArgs e)
         {
@@ -143,7 +148,7 @@ namespace KF2_banlist_editor
 
             if (openFile.ShowDialog() == DialogResult.OK)
             {
-                
+
                 string filePath = openFile.FileName;
                 using (StreamReader rdr = new StreamReader(filePath))
                 {
@@ -173,7 +178,7 @@ namespace KF2_banlist_editor
 
             if (openFile.ShowDialog() == DialogResult.OK)
             {
-                
+
                 string filePath = openFile.FileName;
                 using (StreamReader rdr = new StreamReader(filePath))
                 {
@@ -187,7 +192,7 @@ namespace KF2_banlist_editor
                     }
                 }
                 banListLoad = true;
-                
+
             }
         }
     }
